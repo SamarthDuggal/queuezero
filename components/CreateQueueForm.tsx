@@ -3,9 +3,11 @@
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { createQueue } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 
 export function CreateQueueForm() {
   const router = useRouter();
+
   const [name, setName] = useState("Walk-in service");
   const [venue, setVenue] = useState("");
   const [avgMinutes, setAvgMinutes] = useState(8);
@@ -14,13 +16,34 @@ export function CreateQueueForm() {
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
+
     setBusy(true);
     setError("");
+
     try {
-      const { queue } = await createQueue({ name, venue, avgMinutes });
+      // Check whether the host is logged in
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      // If not logged in, redirect to authentication
+      if (!user) {
+        router.push("/auth");
+        return;
+      }
+
+      // Logged-in user can create a queue
+      const { queue } = await createQueue({
+        name,
+        venue,
+        avgMinutes,
+      });
+
       router.push(`/host/${queue.code}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not open a desk.");
+      setError(
+        err instanceof Error ? err.message : "Could not open a desk.",
+      );
       setBusy(false);
     }
   }
@@ -34,10 +57,14 @@ export function CreateQueueForm() {
       <p className="text-xs font-semibold tracking-[0.22em] text-lime uppercase">
         Host desk
       </p>
-      <h2 className="display mt-2 text-3xl">Open a live line</h2>
+
+      <h2 className="display mt-2 text-3xl">
+        Open a live line
+      </h2>
+
       <p className="mt-2 text-sm text-muted">
-        You’ll get a short code. Guests join from their phone. You call the next
-        ticket when a chair is free.
+        You’ll get a short code. Guests join from their phone. You call the
+        next ticket when a chair is free.
       </p>
 
       <label className="mt-6 block text-sm">
@@ -75,7 +102,9 @@ export function CreateQueueForm() {
         />
       </label>
 
-      {error ? <p className="mt-4 text-sm text-amber">{error}</p> : null}
+      {error ? (
+        <p className="mt-4 text-sm text-amber">{error}</p>
+      ) : null}
 
       <button
         disabled={busy}

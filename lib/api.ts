@@ -65,3 +65,8 @@ export function fetchTicket(code: string, ticketId: string) {
     cache: "no-store",
   }).then((res) => parse<{ queue: QueueSnapshot; ticket: Ticket }>(res));
 }
+export function deleteQueue(code: string) {
+  return fetch(`/api/queues/${code}`, {
+    method: "DELETE",
+  }).then((res) => parse<{ success: boolean; message: string }>(res));
+}
